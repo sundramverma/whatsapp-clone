@@ -1,5 +1,5 @@
-import Message from "../modal/Message.js";
-import Conversation from '../modal/Conversation.js';
+import Message from "../model/Message.js";
+import Conversation from '../model/Conversation.js';
 
 
 export const newMessage = async (request, response) => {

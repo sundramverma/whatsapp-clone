@@ -1,4 +1,4 @@
-import Conversation  from "../modal/Conversation.js";
+import Conversation  from "../model/Conversation.js";
 
 
 export const newConversation = async (request, response) => {

@@ -1,4 +1,5 @@
-import User from "../modal/User.js";
+import User from "../model/User.js";
+
 
 
 export const addUser = async (request, response) => {
