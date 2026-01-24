@@ -1,16 +1,17 @@
 import { lazy, Suspense } from "react";
 import { GoogleOAuthProvider } from "@react-oauth/google";
 
-// components
+// context providers
 import UserProvider from "./context/UserProvider";
 import AccountProvider from "./context/AccountProvider";
+
+// components
 import Loader from "./components/loader/Loader";
 
 const Messenger = lazy(() => import("./components/Messenger"));
 
 function App() {
-  const clientId =
-    "399714262188-0em6luur0b2vo88prhdf28mfj2r39nbt.apps.googleusercontent.com";
+  const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 
   return (
     <GoogleOAuthProvider clientId={clientId}>
@@ -24,5 +25,9 @@ function App() {
     </GoogleOAuthProvider>
   );
 }
+
+// 🔍 Debug (temporary)
+console.log("GOOGLE CLIENT ID:", import.meta.env.VITE_GOOGLE_CLIENT_ID);
+console.log("BACKEND BASE URL:", import.meta.env.VITE_BASE_URL);
 
 export default App;
