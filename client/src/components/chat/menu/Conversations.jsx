@@ -33,12 +33,7 @@ const Conversations = ({ text }) => {
         fetchData();
     }, [text]);
 
-    useEffect(() => {
-        socket.current.emit('addUser', account);
-        socket.current.on("getUsers", users => {
-            setActiveUsers(users);
-        })
-    }, [account])
+   
 
     return (
         <Component>

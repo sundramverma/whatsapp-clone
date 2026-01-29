@@ -34,8 +34,6 @@ const Title = styled(Typography)`
   font-size: 26px;
   margin-bottom: 25px;
   color: #525252;
-  font-family: Segoe UI, Helvetica Neue, Helvetica, Lucida Grande, Arial,
-    Ubuntu, Cantarell, Fira Sans, sans-serif;
   font-weight: 300;
 `;
 
@@ -68,16 +66,31 @@ const LoginDialog = () => {
     setShowlogoutButton,
   } = useContext(AccountContext);
 
+  // ✅ FINAL FIX HERE
   const onLoginSuccess = async (res) => {
     const decoded = jwtDecode(res.credential);
-    setAccount(decoded);
+
+    // 🔥 normalize user object
+    const user = {
+      sub: decoded.sub,
+      name: decoded.name,
+      email: decoded.email,
+      picture:
+        decoded.picture ||
+        decoded.avatar ||
+        decoded.pictureUrl ||
+        null,
+    };
+
+    setAccount(user);
     setShowloginButton(false);
     setShowlogoutButton(true);
-    await addUser(decoded);
+
+    await addUser(user);
   };
 
   const onLoginFailure = (error) => {
-    console.log("Login Failed:", error);
+    console.log("❌ Login Failed:", error);
   };
 
   return (

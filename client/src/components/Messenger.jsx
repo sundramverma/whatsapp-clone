@@ -1,69 +1,80 @@
-import { useContext, useEffect } from 'react';
-import { AppBar, Toolbar, styled, Box } from '@mui/material';
+import { useContext, useEffect } from "react";
+import { AppBar, Toolbar, styled, Box } from "@mui/material";
 
-import { AccountContext } from '../context/AccountProvider';
-import socket from '../socket';
+import { AccountContext } from "../context/AccountProvider";
 
 // components
-import ChatDialog from './chat/ChatDialog';
-import LoginDialog from './account/LoginDialog';
+import ChatDialog from "./chat/ChatDialog";
+import LoginDialog from "./account/LoginDialog";
 
 const Component = styled(Box)`
-    height: 100vh;
-    background: #DCDCDC;
+  height: 100vh;
+  background: #dcdcdc;
 `;
 
 const Header = styled(AppBar)`
-    background-color: #00A884;
-    height: 125px;
-    box-shadow: none;
+  background-color: #00a884;
+  height: 125px;
+  box-shadow: none;
 `;
 
 const LoginHeader = styled(AppBar)`
-    background: #00bfa5;
-    height: 200px;
-    box-shadow: none;
+  background: #00bfa5;
+  height: 200px;
+  box-shadow: none;
 `;
 
 const Messenger = () => {
-    const { account } = useContext(AccountContext);
+  const { account, socket, setActiveUsers } = useContext(AccountContext);
 
-    // ---------- SOCKET CONNECTION ----------
-    useEffect(() => {
-        if (account) {
-            socket.emit("addUser", account);
-        }
+  useEffect(() => {
+    if (!account?.sub) return;
 
-        socket.on("getMessage", (data) => {
-            console.log("📩 Real-time message:", data);
-            // yahan baad me messages state me add karenge
-        });
+    // ✅ connect socket
+    socket.current.connect();
 
-        return () => {
-            socket.off("getMessage");
-        };
-    }, [account]);
+    socket.current.on("connect", () => {
+      console.log("✅ Socket connected:", socket.current.id);
 
-    return (
-        <Component>
-            {
-                account ? 
-                <>
-                    <Header>
-                        <Toolbar></Toolbar>
-                    </Header>
-                    <ChatDialog />
-                </>
-                :
-                <>
-                    <LoginHeader>
-                        <Toolbar></Toolbar>
-                    </LoginHeader>
-                    <LoginDialog />
-                </>
-            }
-        </Component>
-    );
+      // ✅ add user ONLY HERE
+      socket.current.emit("addUser", account);
+    });
+
+    socket.current.on("getUsers", (users) => {
+      console.log("🟢 Active users:", users);
+      setActiveUsers(users);
+    });
+
+    socket.current.on("disconnect", () => {
+      console.log("❌ Socket disconnected");
+      setActiveUsers([]);
+    });
+
+    return () => {
+      socket.current.off("getUsers");
+      socket.current.disconnect();
+    };
+  }, [account, setActiveUsers, socket]);
+
+  return (
+    <Component>
+      {account ? (
+        <>
+          <Header>
+            <Toolbar />
+          </Header>
+          <ChatDialog />
+        </>
+      ) : (
+        <>
+          <LoginHeader>
+            <Toolbar />
+          </LoginHeader>
+          <LoginDialog />
+        </>
+      )}
+    </Component>
+  );
 };
 
 export default Messenger;

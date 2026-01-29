@@ -1,53 +1,105 @@
-import { Server } from "socket.io";
-import http from "http";
+import { Server } from 'socket.io';
+import { createServer } from 'http';
+import express from 'express';
 
-const httpServer = http.createServer();
-
-const io = new Server(httpServer, {
-  cors: {
-    origin: "http://localhost:5173",
-    methods: ["GET", "POST"],
-  },
+const app = express();
+const server = createServer(app);
+const io = new Server(server, {
+    cors: {
+        origin: 'http://localhost:3000',
+        methods: ['GET', 'POST'],
+        credentials: true
+    }
 });
 
 let users = [];
 
 const addUser = (userData, socketId) => {
-  if (!users.some((user) => user.sub === userData.sub)) {
-    users.push({ ...userData, socketId });
-  }
+    const userExists = users.some(user => user.sub === userData.sub);
+    if (!userExists) {
+        users.push({ ...userData, socketId });
+        console.log(`User added: ${userData.name || userData.sub}`);
+    }
 };
 
 const removeUser = (socketId) => {
-  users = users.filter((user) => user.socketId !== socketId);
+    const user = users.find(user => user.socketId === socketId);
+    if (user) {
+        users = users.filter(user => user.socketId !== socketId);
+        console.log(`User removed: ${user.name || user.sub}`);
+    }
 };
 
 const getUser = (userId) => {
-  return users.find((user) => user.sub === userId);
+    return users.find(user => user.sub === userId);
 };
 
-io.on("connection", (socket) => {
-  console.log("🔌 user connected:", socket.id);
+const getUserBySocketId = (socketId) => {
+    return users.find(user => user.socketId === socketId);
+};
 
-  socket.on("addUser", (userData) => {
-    addUser(userData, socket.id);
-    io.emit("getUsers", users);
-  });
+io.on('connection', (socket) => {
+    console.log(`User connected: ${socket.id}`);
 
-  socket.on("sendMessage", (data) => {
-    const user = getUser(data.receiverId);
-    if (user) {
-      io.to(user.socketId).emit("getMessage", data);
-    }
-  });
+    // Connect user
+    socket.on("addUser", (userData) => {
+        if (!userData || !userData.sub) {
+            console.error('Invalid user data received');
+            return;
+        }
+        addUser(userData, socket.id);
+        io.emit("getUsers", users);
+    });
 
-  socket.on("disconnect", () => {
-    console.log("❌ user disconnected:", socket.id);
-    removeUser(socket.id);
-    io.emit("getUsers", users);
-  });
+    // Send message
+    socket.on('sendMessage', (data) => {
+        try {
+            const user = getUser(data.receiverId);
+            if (user) {
+                io.to(user.socketId).emit('getMessage', {
+                    ...data,
+                    timestamp: new Date().toISOString()
+                });
+                console.log(`Message sent from ${data.senderId} to ${data.receiverId}`);
+            } else {
+                console.log(`User ${data.receiverId} not found online`);
+                // Optionally notify sender that user is offline
+                socket.emit('messageStatus', {
+                    receiverId: data.receiverId,
+                    status: 'offline',
+                    messageId: data.id
+                });
+            }
+        } catch (error) {
+            console.error('Error sending message:', error);
+        }
+    });
+
+    // Typing indicator
+    socket.on('typing', (data) => {
+        const user = getUser(data.receiverId);
+        if (user) {
+            io.to(user.socketId).emit('userTyping', {
+                senderId: data.senderId,
+                isTyping: data.isTyping
+            });
+        }
+    });
+
+    // Handle disconnection
+    socket.on('disconnect', () => {
+        console.log(`User disconnected: ${socket.id}`);
+        removeUser(socket.id);
+        io.emit('getUsers', users);
+    });
+
+    // Error handling
+    socket.on('error', (error) => {
+        console.error('Socket error:', error);
+    });
 });
 
-httpServer.listen(9000, () => {
-  console.log("🚀 Socket server running on port 9000");
+const PORT = process.env.PORT || 9000;
+server.listen(PORT, () => {
+    console.log(`Socket.IO server running on port ${PORT}`);
 });

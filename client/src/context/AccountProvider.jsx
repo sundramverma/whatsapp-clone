@@ -4,24 +4,21 @@ import { io } from "socket.io-client";
 export const AccountContext = createContext(null);
 
 const AccountProvider = ({ children }) => {
-  const [account, setAccount] = useState();
+  const [account, setAccount] = useState(null);
   const [showloginButton, setShowloginButton] = useState(true);
   const [showlogoutButton, setShowlogoutButton] = useState(false);
 
   const [activeUsers, setActiveUsers] = useState([]);
   const [newMessageFlag, setNewMessageFlag] = useState(false);
 
-  const socket = useRef();
+  const socket = useRef(null);
 
+  // 🔥 socket sirf yahin banao
   useEffect(() => {
-    // 🔥 CONNECT TO LIVE BACKEND (RENDER)
-    socket.current = io(import.meta.env.VITE_BASE_URL, {
+    socket.current = io("ws://localhost:9000", {
+      autoConnect: false,
       transports: ["websocket"],
     });
-
-    return () => {
-      socket.current.disconnect();
-    };
   }, []);
 
   return (
